@@ -10,6 +10,10 @@ class PpdbSummary extends Model
 
     protected $fillable = [
         'tahun',
-        'total_siswa'
+        'total_siswa',
+        'total_akl',
+        'total_dkv',
+        'total_tkj',
+        'total_to',
     ];
 }

@@ -12,7 +12,13 @@ class PpdbSummaryImport implements ToModel, WithHeadingRow
     {
         return PpdbSummary::updateOrCreate(
             ['tahun' => $row['tahun']], // kunci unik
-            ['total_siswa' => $row['total_siswa']]
+            [
+                'total_siswa' => $row['total_siswa'],
+                'total_akl'   => $row['total_akl'] ?? 0,
+                'total_dkv'   => $row['total_dkv'] ?? 0,
+                'total_tkj'   => $row['total_tkj'] ?? 0,
+                'total_to'    => $row['total_to'] ?? 0,
+            ]
         );
     }
 }

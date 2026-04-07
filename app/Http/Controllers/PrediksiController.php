@@ -4,89 +4,93 @@ namespace App\Http\Controllers;
 
 use App\Models\PpdbSummary;
 use Illuminate\Http\Request;
+use App\Services\PrediksiService;
+use App\Services\ProdiPredictionService;
 
 class PrediksiController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        // Ambil data summary (tahun & total siswa)
-        $data = PpdbSummary::orderBy('tahun')->get();
+        $metode = $request->get('metode', 'regresi_linear');
 
-        // X = tahun, Y = total siswa
-        $x = $data->pluck('tahun')->toArray();
-        $y = $data->pluck('total_siswa')->toArray();
+        // Ambil hasil perhitungan global & per prodi
+        $hasil = ProdiPredictionService::hitungSemua();
 
-        $n = count($x);
-
-        // ======================
-        // REGRESI LINEAR
-        // ======================
-        $sumX = array_sum($x);
-        $sumY = array_sum($y);
-        $sumXY = 0;
-        $sumX2 = 0;
-
-        for ($i = 0; $i < $n; $i++) {
-            $sumXY += $x[$i] * $y[$i];
-            $sumX2 += $x[$i] * $x[$i];
+        if (empty($hasil['tahun'])) {
+            return view('prediksi.index', [
+                'metode' => $metode,
+                'tahunPrediksi' => '-',
+                'hasilPrediksi' => 0,
+                'r2' => 0,
+                'mape' => 0,
+                'chartTahun' => [],
+                'chartAktualGlobal' => [],
+                'chartPrediksiProdi' => [],
+                'statProdi' => [],
+            ]);
         }
 
-        $b = (($n * $sumXY) - ($sumX * $sumY)) / (($n * $sumX2) - ($sumX ** 2));
-        $a = ($sumY - ($b * $sumX)) / $n;
+        $tahun = $hasil['tahun'];
 
-        // ======================
-        // PREDIKSI TAHUN DEPAN
-        // ======================
-        $tahunPrediksi = max($x) + 1;
-        $hasilPrediksi = round($a + ($b * $tahunPrediksi));
+        $global = $hasil['global'];
 
-        // ======================
-        // HITUNG R²
-        // ======================
-        $meanY = array_sum($y) / $n;
-        $ssTot = 0;
-        $ssRes = 0;
-
-        for ($i = 0; $i < $n; $i++) {
-            $yPred = $a + ($b * $x[$i]);
-            $ssTot += pow($y[$i] - $meanY, 2);
-            $ssRes += pow($y[$i] - $yPred, 2);
+        // Tentukan data global sesuai metode terpilih
+        if ($metode === 'moving_average') {
+            $chartPredGlobal = $global['chart_prediksi_moving'];
+            $r2 = 0;
+            $mapeGlobal = $global['moving_average']['mape'];
+        } else {
+            $chartPredGlobal = $global['chart_prediksi_regresi'];
+            $r2 = $global['regresi']['r2'];
+            $mapeGlobal = $global['regresi']['mape'];
         }
 
-        $r2 = 1 - ($ssRes / $ssTot);
+        $tahunPrediksi = end($tahun);
+        $hasilPrediksi = $metode === 'moving_average'
+            ? $global['moving_average']['next_prediction']
+            : $global['regresi']['next_prediction'];
 
-        // ======================
-        // HITUNG MAPE
-        // ======================
-        $mapeTotal = 0;
-        for ($i = 0; $i < $n; $i++) {
-            $yPred = $a + ($b * $x[$i]);
-            if ($y[$i] != 0) {
-                $mapeTotal += abs(($y[$i] - $yPred) / $y[$i]);
+        // Siapkan statistik per prodi dan data chart multi-line (aktual + prediksi)
+        $labelProdi = ['AKL', 'DKV', 'TKJ', 'TO'];
+        $chartAktualProdi   = [];
+        $chartPrediksiProdi = [];
+       $statProdi = [];
+
+        foreach ($labelProdi as $prodi) {
+            $dataProdi = $hasil[$prodi];
+
+            $aktual = $dataProdi['chart_aktual'];
+
+            if ($metode === 'moving_average') {
+                $predSeries = $dataProdi['chart_prediksi_moving'];
+                $mape = $dataProdi['moving_average']['mape'];
+                $r2Prodi = 0;
+            } else {
+                $predSeries = $dataProdi['chart_prediksi_regresi'];
+                $mape = $dataProdi['regresi']['mape'];
+                $r2Prodi = $dataProdi['regresi']['r2'];
             }
+
+            $chartAktualProdi[$prodi]   = $aktual;
+            $chartPrediksiProdi[$prodi] = $predSeries;
+
+            $statProdi[$prodi] = [
+                'prediksi_tahun_depan' => end($predSeries),
+                'mape' => $mape,
+                'r2' => $r2Prodi,
+            ];
         }
 
-        $mape = ($mapeTotal / $n) * 100;
-
-        // ======================
-        // DATA UNTUK GRAFIK
-        // ======================
-        $chartTahun = array_merge($x, [$tahunPrediksi]);
-        $chartAktual = $y;
-        $chartPrediksi = [];
-
-        foreach ($chartTahun as $tahun) {
-            $chartPrediksi[] = round($a + ($b * $tahun));
-        }
-
-        return view('prediksi.index', compact(
-            'tahunPrediksi',
-            'hasilPrediksi',
-            'r2',
-            'mape',
-            'chartTahun',
-            'chartAktual',
-            'chartPrediksi'
-        ));
+        return view('prediksi.index', [
+            'metode' => $metode,
+            'tahunPrediksi' => $tahunPrediksi,
+            'hasilPrediksi' => $hasilPrediksi,
+            'r2' => $r2,
+            'mape' => $mapeGlobal,
+            'chartTahun'        => $tahun,
+            'chartAktualProdi'  => $chartAktualProdi,
+            'chartPrediksiProdi'=> $chartPrediksiProdi,
+            'statProdi'         => $statProdi,
+        ]);
     }
 }

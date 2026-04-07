@@ -54,6 +54,12 @@ class AnalisisController extends Controller
                 ->orderByDesc('total')
                 ->get();
 
+            $totalJurusan = $jurusan->sum('total');
+            $jurusanPersen = $jurusan->map(function ($row) use ($totalJurusan) {
+                $persen = $totalJurusan > 0 ? ($row->total / $totalJurusan) * 100 : 0;
+                return round($persen, 2);
+            });
+
             // =========================
             // ANALISIS ASAL SEKOLAH (TOP 10)
             // =========================
@@ -72,6 +78,7 @@ class AnalisisController extends Controller
             $listTahun = collect();
             $wilayah   = collect();
             $jurusan   = collect();
+            $jurusanPersen = collect();
             $sekolah   = collect();
         }
 
@@ -80,7 +87,8 @@ class AnalisisController extends Controller
             'tahun',
             'wilayah',
             'jurusan',
-            'sekolah'
+            'sekolah',
+            'jurusanPersen'
         ));
     }
 }

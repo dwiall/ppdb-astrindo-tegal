@@ -58,6 +58,26 @@
             background: rgba(255,255,255,.15);
             color: #fff;
         }
+        .sidebar-footer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 14px 20px;
+            border-top: 1px solid rgba(255,255,255,.15);
+            color: rgba(255,255,255,.9);
+            font-size: 12px;
+            background: rgba(0,0,0,.08);
+        }
+        .sidebar-footer .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+        .sidebar-footer .meta-item:last-child {
+            margin-bottom: 0;
+        }
 
         .top-navbar {
             position: fixed;
@@ -78,6 +98,29 @@
             margin-left: var(--sidebar-width);
             margin-top: 70px;
             padding: 30px;
+            min-height: calc(100vh - 70px);
+            display: flex;
+            flex-direction: column;
+        }
+        .header-search {
+            max-width: 420px;
+            width: 100%;
+        }
+        .search-empty-state {
+            display: none;
+            background: #fff;
+            border-radius: 12px;
+            padding: 14px 16px;
+            color: #6b7280;
+            margin-top: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,.05);
+        }
+        .layout-footer {
+            margin-top: auto;
+            padding-top: 22px;
+            color: #64748b;
+            font-size: 13px;
+            text-align: center;
         }
 
         .page-header {
@@ -173,10 +216,37 @@
             <i class="fas fa-file-alt"></i> Manajemen Data
         </a>
     </nav>
+
+    <div class="sidebar-footer">
+        <div class="meta-item">
+            <i class="fas fa-user-shield"></i>
+            <span>Role: {{ auth()->user()->role->name ?? auth()->user()->role_name ?? 'Administrator' }}</span>
+        </div>
+        <div class="meta-item">
+            <i class="fas fa-clock"></i>
+            <span>
+                Last login:
+                {{ auth()->user()->last_login_at ? \Carbon\Carbon::parse(auth()->user()->last_login_at)->format('d M Y H:i') : '-' }}
+            </span>
+        </div>
+    </div>
 </aside>
 
 <nav class="top-navbar">
-    <div></div>
+    <div class="header-search">
+        <div class="input-group">
+            <span class="input-group-text bg-white border-end-0">
+                <i class="fas fa-search text-muted"></i>
+            </span>
+            <input
+                type="text"
+                id="globalSearchInput"
+                class="form-control border-start-0"
+                placeholder="Cari data secara real-time..."
+                autocomplete="off"
+            >
+        </div>
+    </div>
 
     <div class="dropdown">
         <div class="user-avatar" data-bs-toggle="dropdown">
@@ -184,14 +254,17 @@
         </div>
         <ul class="dropdown-menu dropdown-menu-end">
             <li class="dropdown-header text-center">
-                {{ auth()->user()->name }}
+                <i class="fas fa-user me-2 text-primary"></i>{{ auth()->user()->name }}
+            </li>
+            <li class="dropdown-header text-center">
+                <i class="fas fa-envelope me-2 text-secondary"></i>{{ auth()->user()->email }}
             </li>
             <li><hr class="dropdown-divider"></li>
             <li>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
                     <button type="submit" class="dropdown-item text-danger">
-                        Logout
+                        <i class="fas fa-right-from-bracket me-2"></i>Logout
                     </button>
                 </form>
             </li>
@@ -206,9 +279,68 @@
     </div>
 
     @yield('content')
+    <div id="searchEmptyState" class="search-empty-state">
+        Tidak ada data yang cocok dengan kata kunci pencarian.
+    </div>
+
+    <footer class="layout-footer">
+        <div>
+            &copy; {{ date('Y') }} Sistem Informasi PPDB SMK Astrindo Tegal.
+            Dikembangkan untuk analisis tren dan prediksi penerimaan peserta didik baru.
+        </div>
+    </footer>
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    (function() {
+        const searchInput = document.getElementById('globalSearchInput');
+        if (!searchInput) return;
+
+        const mainContent = document.querySelector('.main-content');
+        const emptyState = document.getElementById('searchEmptyState');
+
+        const searchableSelector = [
+            '.stat-card',
+            '.card',
+            'table tbody tr',
+            '.list-group-item'
+        ].join(', ');
+
+        const getItems = () => Array.from(mainContent.querySelectorAll(searchableSelector))
+            .filter(el => !el.closest('.layout-footer') && !el.closest('#searchEmptyState'));
+
+        const normalize = (value) => (value || '').toLowerCase().trim();
+
+        const filterRealtime = () => {
+            const keyword = normalize(searchInput.value);
+            const items = getItems();
+            let visibleCount = 0;
+
+            items.forEach((item) => {
+                if (!keyword) {
+                    item.style.display = '';
+                    visibleCount++;
+                    return;
+                }
+
+                const text = normalize(item.innerText);
+                const isMatch = text.includes(keyword);
+                item.style.display = isMatch ? '' : 'none';
+                if (isMatch) visibleCount++;
+            });
+
+            if (!keyword) {
+                emptyState.style.display = 'none';
+                return;
+            }
+
+            emptyState.style.display = visibleCount > 0 ? 'none' : 'block';
+        };
+
+        searchInput.addEventListener('input', filterRealtime);
+    })();
+</script>
 @stack('scripts')
 
 </body>

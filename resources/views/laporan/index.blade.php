@@ -35,8 +35,12 @@
         <div class="row align-items-center">
             <div class="col-md-6">
                 <input type="file" name="file" class="form-control" required>
+                <small class="text-muted d-block">
+                    Format kolom:
+                    <b>tahun | total_siswa | total_akl | total_dkv | total_tkj | total_to</b>
+                </small>
                 <small class="text-muted">
-                    Format kolom: <b>tahun | total_siswa</b>
+                    Kolom prodi berisi jumlah siswa per program studi (AKL, DKV, TKJ, TO) untuk tahun tersebut.
                 </small>
             </div>
             <div class="col-md-3">
@@ -116,8 +120,12 @@
     <table class="table table-bordered bg-white mb-0">
         <thead class="table-light">
             <tr>
-                <th width="30%">Tahun</th>
+                <th>Tahun</th>
                 <th>Total Siswa</th>
+                <th>Total AKL</th>
+                <th>Total DKV</th>
+                <th>Total TKJ</th>
+                <th>Total TO</th>
             </tr>
         </thead>
         <tbody>
@@ -125,10 +133,14 @@
                 <tr>
                     <td>{{ $row->tahun }}</td>
                     <td>{{ number_format($row->total_siswa) }}</td>
+                    <td>{{ number_format($row->total_akl ?? 0) }}</td>
+                    <td>{{ number_format($row->total_dkv ?? 0) }}</td>
+                    <td>{{ number_format($row->total_tkj ?? 0) }}</td>
+                    <td>{{ number_format($row->total_to ?? 0) }}</td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="2" class="text-center text-muted">
+                    <td colspan="6" class="text-center text-muted">
                         Data belum tersedia
                     </td>
                 </tr>

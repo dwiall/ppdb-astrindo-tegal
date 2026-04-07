@@ -24,30 +24,6 @@
     </form>
 </div>
 
-{{-- ===================== ANALISIS WILAYAH ===================== --}}
-<div class="card p-4 mb-5">
-    <h5 class="mb-3">Distribusi Peserta Berdasarkan Wilayah</h5>
-
-    <table class="table table-bordered mb-4">
-        <thead class="table-light">
-            <tr>
-                <th>Wilayah</th>
-                <th>Total Peserta</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach($wilayah as $row)
-            <tr>
-                <td>{{ $row->sub_kategori }}</td>
-                <td>{{ $row->total }}</td>
-            </tr>
-            @endforeach
-        </tbody>
-    </table>
-
-    <canvas id="wilayahChart" height="120"></canvas>
-</div>
-
 {{-- ===================== ANALISIS JURUSAN ===================== --}}
 <div class="card p-4 mb-5">
     <h5 class="mb-3">Distribusi Peserta Berdasarkan Jurusan</h5>
@@ -74,6 +50,30 @@
             <canvas id="jurusanChart"></canvas>
         </div>
     </div>
+</div>
+
+{{-- ===================== ANALISIS WILAYAH ===================== --}}
+<div class="card p-4 mb-5">
+    <h5 class="mb-3">Distribusi Peserta Berdasarkan Wilayah</h5>
+
+    <table class="table table-bordered mb-4">
+        <thead class="table-light">
+            <tr>
+                <th>Wilayah</th>
+                <th>Total Peserta</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($wilayah as $row)
+            <tr>
+                <td>{{ $row->sub_kategori }}</td>
+                <td>{{ $row->total }}</td>
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
+
+    <canvas id="wilayahChart" height="120"></canvas>
 </div>
 
 {{-- ===================== TOP 10 ASAL SEKOLAH ===================== --}}
@@ -138,6 +138,7 @@ new Chart(document.getElementById('wilayahChart'), {
 /* ===== JURUSAN PIE CHART ===== */
 const jurusanLabels = {!! json_encode($jurusan->pluck('sub_kategori')) !!};
 const jurusanValues = {!! json_encode($jurusan->pluck('total')) !!};
+const jurusanPersen = {!! json_encode($jurusanPersen ?? []) !!};
 
 new Chart(document.getElementById('jurusanChart'), {
     type: 'pie',
@@ -159,9 +160,51 @@ new Chart(document.getElementById('jurusanChart'), {
         plugins: {
             legend: {
                 position: 'bottom'
+            },
+            tooltip: {
+                enabled: true
             }
         }
-    }
+    },
+    plugins: [{
+        id: 'jurusanLabelsPlugin',
+        afterDraw(chart) {
+            const {ctx} = chart;
+            const meta = chart.getDatasetMeta(0);
+
+            ctx.save();
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '10px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            meta.data.forEach((arc, index) => {
+                const props = arc.getProps(['startAngle', 'endAngle', 'innerRadius', 'outerRadius', 'x', 'y'], true);
+
+                const angle = (props.startAngle + props.endAngle) / 2;
+                const radius = (props.innerRadius + props.outerRadius) / 2;
+
+                const x = props.x + Math.cos(angle) * radius;
+                const y = props.y + Math.sin(angle) * radius;
+
+                const nama = jurusanLabels[index] ?? '';
+                const total = jurusanValues[index] ?? 0;
+                const persenRaw = jurusanPersen[index] ?? 0;
+                const persen = typeof persenRaw === 'number' ? persenRaw.toFixed(1) : persenRaw;
+
+                const lines = [
+                    nama,
+                    `${total} (${persen}%)`
+                ];
+
+                lines.forEach((line, i) => {
+                    ctx.fillText(line, x, y + (i * 12) - 6);
+                });
+            });
+
+            ctx.restore();
+        }
+    }]
 });
 </script>
 

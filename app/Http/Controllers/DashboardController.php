@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\PpdbSummary;
+use App\Services\ProdiPredictionService;
 
 class DashboardController extends Controller
 {
@@ -18,6 +19,7 @@ class DashboardController extends Controller
         // =========================
         if ($data->count() < 2) {
             return view('dashboard.index', [
+                'metodeTerbaikGlobal'  => '-',
                 'tahunTerakhir'        => '-',
                 'siswaTahunTerakhir'   => 0,
                 'pertumbuhanText'      => 'Data belum cukup untuk analisis',
@@ -26,94 +28,45 @@ class DashboardController extends Controller
                 'r2'                   => 0,
                 'mape'                 => 0,
                 'chartTahun'           => [],
-                'chartAktual'          => [],
-                'chartPrediksi'        => [],
+                'chartAktualProdi'     => [],
+                'chartPrediksiProdi'   => [],
+                'statProdi'            => [],
             ]);
         }
 
-        $x = $data->pluck('tahun')->toArray();
-        $y = $data->pluck('total_siswa')->toArray();
-        $n = count($x);
+        $hasil = ProdiPredictionService::hitungSemua();
+
+        $tahun  = $hasil['tahun'];
+        $global = $hasil['global'];
 
         // =========================
-        // REGRESI LINEAR
+        // GLOBAL: PAKAI METODE TERBAIK (BERDASARKAN MAPE)
         // =========================
-        $sumX = array_sum($x);
-        $sumY = array_sum($y);
-        $sumXY = 0;
-        $sumX2 = 0;
-
-        for ($i = 0; $i < $n; $i++) {
-            $sumXY += $x[$i] * $y[$i];
-            $sumX2 += $x[$i] * $x[$i];
+        $metodeTerbaikGlobal = $global['metode_terbaik'];
+        if ($metodeTerbaikGlobal === 'moving_average') {
+            $chartPredGlobal = $global['chart_prediksi_moving'];
+            $r2 = 0;
+            $mape = $global['moving_average']['mape'];
+        } else {
+            $chartPredGlobal = $global['chart_prediksi_regresi'];
+            $r2 = $global['regresi']['r2'];
+            $mape = $global['regresi']['mape'];
         }
-
-        $penyebut = ($n * $sumX2) - ($sumX ** 2);
-        $b = $penyebut != 0 ? (($n * $sumXY - $sumX * $sumY) / $penyebut) : 0;
-        $a = ($sumY - ($b * $sumX)) / $n;
 
         // =========================
         // TAHUN TERAKHIR & PREDIKSI
         // =========================
-        $tahunTerakhir = max($x);
-        $siswaTahunTerakhir = $data
-            ->where('tahun', $tahunTerakhir)
-            ->first()
-            ->total_siswa;
+        $tahunTerakhir = $data->max('tahun');
+        $siswaTahunTerakhir = $data->where('tahun', $tahunTerakhir)->first()->total_siswa ?? 0;
 
-        $tahunPrediksi = $tahunTerakhir + 1;
-        $hasilPrediksi = round($a + ($b * $tahunPrediksi));
-
-        // =========================
-        // R² (KOEFISIEN DETERMINASI)
-        // =========================
-        $meanY = array_sum($y) / $n;
-        $ssTot = 0;
-        $ssRes = 0;
-
-        for ($i = 0; $i < $n; $i++) {
-            $yPred = $a + ($b * $x[$i]);
-            $ssTot += pow($y[$i] - $meanY, 2);
-            $ssRes += pow($y[$i] - $yPred, 2);
-        }
-
-        $r2 = $ssTot != 0 ? 1 - ($ssRes / $ssTot) : 0;
-
-        // =========================
-        // MAPE
-        // =========================
-        $mapeTotal = 0;
-        $valid = 0;
-
-        for ($i = 0; $i < $n; $i++) {
-            if ($y[$i] != 0) {
-                $yPred = $a + ($b * $x[$i]);
-                $mapeTotal += abs(($y[$i] - $yPred) / $y[$i]);
-                $valid++;
-            }
-        }
-
-        $mape = $valid > 0 ? ($mapeTotal / $valid) * 100 : 0;
-
-        // =========================
-        // DATA GRAFIK
-        // =========================
-        $chartTahun = array_merge($x, [$tahunPrediksi]);
-        $chartAktual = $y;
-        $chartPrediksi = [];
-
-        foreach ($chartTahun as $tahun) {
-            $chartPrediksi[] = round($a + ($b * $tahun));
-        }
+        $tahunPrediksi = end($tahun);
+        $hasilPrediksi = end($chartPredGlobal);
 
         // =========================
         // PERTUMBUHAN (AUTO TEKS)
         // =========================
         $tahunSebelumnya = $tahunTerakhir - 1;
-        $siswaSebelumnya = $data
-            ->where('tahun', $tahunSebelumnya)
-            ->first()
-            ->total_siswa ?? 0;
+        $siswaSebelumnya = $data->where('tahun', $tahunSebelumnya)->first()->total_siswa ?? 0;
 
         if ($siswaSebelumnya > 0) {
             $pertumbuhan = (($siswaTahunTerakhir - $siswaSebelumnya) / $siswaSebelumnya) * 100;
@@ -130,17 +83,42 @@ class DashboardController extends Controller
             $pertumbuhanText = "Data tahun sebelumnya tidak tersedia";
         }
 
-        return view('dashboard.index', compact(
-            'tahunTerakhir',
-            'siswaTahunTerakhir',
-            'pertumbuhanText',
-            'tahunPrediksi',
-            'hasilPrediksi',
-            'r2',
-            'mape',
-            'chartTahun',
-            'chartAktual',
-            'chartPrediksi'
-        ));
+        // =========================
+        // STATISTIK PER PRODI & DATA GRAFIK
+        // =========================
+        $labelProdi = ['AKL', 'DKV', 'TKJ', 'TO'];
+        $chartAktualProdi   = [];
+        $chartPrediksiProdi = [];
+        $statProdi = [];
+
+        foreach ($labelProdi as $prodi) {
+            $dataProdi = $hasil[$prodi];
+
+            $aktual = $dataProdi['chart_aktual'];
+            $predTerbaik = $dataProdi['chart_prediksi_terbaik'];
+
+            $chartAktualProdi[$prodi]   = $aktual;
+            $chartPrediksiProdi[$prodi] = $predTerbaik;
+
+            $statProdi[$prodi] = [
+                'prediksi_tahun_depan' => end($predTerbaik),
+                'mape' => $dataProdi['mape_terbaik'],
+            ];
+        }
+
+        return view('dashboard.index', [
+            'metodeTerbaikGlobal' => $metodeTerbaikGlobal,
+            'tahunTerakhir'       => $tahunTerakhir,
+            'siswaTahunTerakhir'  => $siswaTahunTerakhir,
+            'pertumbuhanText'     => $pertumbuhanText,
+            'tahunPrediksi'       => $tahunPrediksi,
+            'hasilPrediksi'       => $hasilPrediksi,
+            'r2'                  => $r2,
+            'mape'                => $mape,
+            'chartTahun'          => $tahun,
+            'chartAktualProdi'    => $chartAktualProdi,
+            'chartPrediksiProdi'  => $chartPrediksiProdi,
+            'statProdi'           => $statProdi,
+        ]);
     }
 }

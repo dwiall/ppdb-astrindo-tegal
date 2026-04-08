@@ -17,24 +17,36 @@ class RegresiLinearService
 
         $sumX = $sumY = $sumXY = $sumX2 = 0;
 
+        $i = 1; // 🔥 index dimulai dari 1
+
         foreach ($data as $row) {
-            $x = (int) $row->tahun;
+            $x = $i; // 🔥 pakai index, bukan tahun
             $y = (int) $row->total_siswa;
 
             $sumX  += $x;
             $sumY  += $y;
             $sumXY += $x * $y;
             $sumX2 += $x * $x;
+
+            $i++;
         }
 
-        $b = ($n * $sumXY - $sumX * $sumY)
-           / ($n * $sumX2 - pow($sumX, 2));
+        $denom = ($n * $sumX2 - pow($sumX, 2));
 
+        if ($denom == 0) {
+            return null;
+        }
+
+        $b = ($n * $sumXY - $sumX * $sumY) / $denom;
         $a = ($sumY - $b * $sumX) / $n;
 
+        // 🔥 prediksi pakai index berikutnya (n+1)
+        $nextX = $n + 1;
+        $hasilPrediksi = round($a + ($b * $nextX));
+
+        // tetap tampilkan tahun 2026
         $tahunTerakhir = $data->last()->tahun;
         $tahunPrediksi = $tahunTerakhir + 1;
-        $hasilPrediksi = round($a + ($b * $tahunPrediksi));
 
         return [
             'a' => round($a, 4),

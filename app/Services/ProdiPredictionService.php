@@ -6,18 +6,6 @@ use App\Models\PpdbSummary;
 
 class ProdiPredictionService
 {
-    /**
-     * Hitung hasil prediksi (regresi linear & moving average) untuk total dan tiap prodi.
-     *
-     * @return array{
-     *   tahun: array<int, int>,
-     *   global: array,
-     *   AKL: array,
-     *   DKV: array,
-     *   TKJ: array,
-     *   TO: array
-     * }
-     */
     public static function hitungSemua(): array
     {
         $data = PpdbSummary::orderBy('tahun')->get();
@@ -33,26 +21,14 @@ class ProdiPredictionService
             ];
         }
 
-        $tahun = $data->pluck('tahun')->map(function ($v) {
-            return (int) $v;
-        })->toArray();
+        $tahun = $data->pluck('tahun')->map(fn($v) => (int)$v)->toArray();
 
         $seri = [
-            'global' => $data->pluck('total_siswa')->map(function ($v) {
-                return (int) $v;
-            })->toArray(),
-            'AKL'    => $data->pluck('total_akl')->map(function ($v) {
-                return (int) $v;
-            })->toArray(),
-            'DKV'    => $data->pluck('total_dkv')->map(function ($v) {
-                return (int) $v;
-            })->toArray(),
-            'TKJ'    => $data->pluck('total_tkj')->map(function ($v) {
-                return (int) $v;
-            })->toArray(),
-            'TO'     => $data->pluck('total_to')->map(function ($v) {
-                return (int) $v;
-            })->toArray(),
+            'global' => $data->pluck('total_siswa')->map(fn($v) => (int)$v)->toArray(),
+            'AKL'    => $data->pluck('total_akl')->map(fn($v) => (int)$v)->toArray(),
+            'DKV'    => $data->pluck('total_dkv')->map(fn($v) => (int)$v)->toArray(),
+            'TKJ'    => $data->pluck('total_tkj')->map(fn($v) => (int)$v)->toArray(),
+            'TO'     => $data->pluck('total_to')->map(fn($v) => (int)$v)->toArray(),
         ];
 
         $hasil = [
@@ -60,62 +36,47 @@ class ProdiPredictionService
         ];
 
         foreach ($seri as $key => $y) {
-            $hasil[$key] = self::hitungUntukSeri($tahun, $y);
+            // 🔥 FIX: tidak kirim tahun lagi
+            $hasil[$key] = self::hitungUntukSeri($y);
         }
 
         return $hasil;
     }
 
-    /**
-     * Hitung kedua metode dan pilih yang terbaik berdasarkan MAPE.
-     *
-     * @param  array<int,int> $tahun
-     * @param  array<int,int> $y
-     * @return array{
-     *   metode_terbaik: string,
-     *   regresi: array,
-     *   moving_average: array,
-     *   chart_aktual: array<int,int>,
-     *   chart_prediksi_regresi: array<int,float>,
-     *   chart_prediksi_moving: array<int,float>,
-     *   chart_prediksi_terbaik: array<int,float>,
-     *   prediksi_tahun_depan: int,
-     *   mape_terbaik: float,
-     *   r2_terbaik: float|null
-     * }
-     */
-    public static function hitungUntukSeri(array $tahun, array $y): array
+    public static function hitungUntukSeri(array $y): array
     {
-        $regresi = PrediksiService::hitungRegresiLinear($tahun, $y);
+        $n = count($y);
+
+        // 🔥 index dibuat di sini (opsional, tapi bagus untuk konsistensi)
+        $x = range(1, $n);
+
+        $regresi = PrediksiService::hitungRegresiLinear($x, $y);
         $moving  = PrediksiService::hitungMovingAverage($y);
 
-        $tahunPrediksi = max($tahun) + 1;
-
-        // Bentuk chart prediksi untuk semua tahun + satu titik prediksi depan
         $chartPredRegresi = [];
         $chartPredMoving  = [];
 
-        foreach ($tahun as $index => $t) {
-            $chartPredRegresi[] = $regresi['y_pred'][$index] ?? 0;
-            $chartPredMoving[]  = $moving['y_pred'][$index] ?? 0;
+        for ($i = 0; $i < $n; $i++) {
+            $chartPredRegresi[] = $regresi['y_pred'][$i] ?? 0;
+            $chartPredMoving[]  = $moving['y_pred'][$i] ?? 0;
         }
 
         $chartPredRegresi[] = $regresi['next_prediction'];
         $chartPredMoving[]  = $moving['next_prediction'];
 
-        // Pilih metode terbaik berdasar MAPE
+        // 🔥 pilih metode terbaik
         if ($regresi['mape'] <= $moving['mape']) {
-            $metodeTerbaik       = 'regresi_linear';
-            $chartPredTerbaik    = $chartPredRegresi;
-            $prediksiTahunDepan  = (int) $regresi['next_prediction'];
-            $mapeTerbaik         = $regresi['mape'];
-            $r2Terbaik           = $regresi['r2'];
+            $metodeTerbaik      = 'regresi_linear';
+            $chartPredTerbaik   = $chartPredRegresi;
+            $prediksiTahunDepan = (int) $regresi['next_prediction'];
+            $mapeTerbaik        = $regresi['mape'];
+            $r2Terbaik          = $regresi['r2'];
         } else {
-            $metodeTerbaik       = 'moving_average';
-            $chartPredTerbaik    = $chartPredMoving;
-            $prediksiTahunDepan  = (int) $moving['next_prediction'];
-            $mapeTerbaik         = $moving['mape'];
-            $r2Terbaik           = null;
+            $metodeTerbaik      = 'moving_average';
+            $chartPredTerbaik   = $chartPredMoving;
+            $prediksiTahunDepan = (int) $moving['next_prediction'];
+            $mapeTerbaik        = $moving['mape'];
+            $r2Terbaik          = null;
         }
 
         return [
@@ -132,4 +93,3 @@ class ProdiPredictionService
         ];
     }
 }
-

@@ -40,7 +40,7 @@
                     <b>tahun | total_siswa | total_akl | total_dkv | total_tkj | total_to</b>
                 </small>
                 <small class="text-muted">
-                    Kolom prodi berisi jumlah siswa per program studi (AKL, DKV, TKJ, TO) untuk tahun tersebut.
+                    Kolom konsentrasi keahlian berisi jumlah siswa per konsentrasi keahlian(AKL, DKV, TKJ, TO) untuk tahun tersebut.
                 </small>
             </div>
             <div class="col-md-3">

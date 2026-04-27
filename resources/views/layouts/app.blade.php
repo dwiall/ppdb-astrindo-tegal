@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SISTEM PPDB SMK ASTRINDO TEGAL</title>
+    <title>SISTEM SPMB SMK ASTRINDO TEGAL</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -200,7 +200,7 @@
 
 <aside class="sidebar">
     <div class="sidebar-header"><img src=" {{ asset('assets/logo/logo-astrindo.png') }}" alt="Logo" class="img-fluid me-2"
-         style="width: 40px;"></img>PPDB Admin</div>
+         style="width: 40px;"></img>SPMB Admin</div>
 
     <nav class="sidebar-menu">
         <a href="/dashboard" class="menu-link {{ request()->is('dashboard') ? 'active' : '' }}">
@@ -285,7 +285,7 @@
 
     <footer class="layout-footer">
         <div>
-            &copy; {{ date('Y') }} Sistem Informasi PPDB SMK Astrindo Tegal.
+            &copy; {{ date('Y') }} Sistem Informasi SPMB SMK Astrindo Tegal.
             Dikembangkan untuk analisis tren dan prediksi penerimaan peserta didik baru.
         </div>
     </footer>

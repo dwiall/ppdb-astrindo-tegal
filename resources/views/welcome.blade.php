@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('page-title', 'Prediksi PPDB')
+@section('page-title', 'Prediksi SPMB')
 @section('page-subtitle', 'Perkiraan Jumlah Pendaftar Tahun Berikutnya')
 
 @section('content')

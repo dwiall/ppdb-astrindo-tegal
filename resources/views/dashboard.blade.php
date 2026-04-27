@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('page-title', 'Dashboard')
-@section('page-subtitle', 'Ringkasan Data PPDB Periode 2021–2025')
+@section('page-subtitle', 'Ringkasan Data SPMB Periode 2021–2025')
 
 @section('content')
 

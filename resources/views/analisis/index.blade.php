@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('page-title', 'Analisis PPDB')
-@section('page-subtitle', 'Analisis Wilayah, Jurusan, dan Asal Sekolah Peserta Didik')
+@section('page-subtitle', 'Analisis Wilayah, Konsentrasi Keahlian, dan Asal Sekolah Peserta Didik')
 
 @section('content')
 
@@ -24,14 +24,14 @@
     </form>
 </div>
 
-{{-- ===================== ANALISIS JURUSAN ===================== --}}
+{{-- ===================== ANALISIS KONSENTRASI KEAHLIAN ===================== --}}
 <div class="card p-4 mb-5">
-    <h5 class="mb-3">Distribusi Peserta Berdasarkan Jurusan</h5>
+    <h5 class="mb-3">Distribusi Peserta Berdasarkan Konsentrasi Keahlian</h5>
 
     <table class="table table-bordered mb-4">
         <thead class="table-light">
             <tr>
-                <th>Jurusan</th>
+                <th>Konsentrasi Keahlian</th>
                 <th>Total Peserta</th>
             </tr>
         </thead>

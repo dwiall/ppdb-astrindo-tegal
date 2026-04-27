@@ -36,7 +36,6 @@ class ProdiPredictionService
         ];
 
         foreach ($seri as $key => $y) {
-            // 🔥 FIX: tidak kirim tahun lagi
             $hasil[$key] = self::hitungUntukSeri($y);
         }
 
@@ -47,7 +46,6 @@ class ProdiPredictionService
     {
         $n = count($y);
 
-        // 🔥 index dibuat di sini (opsional, tapi bagus untuk konsistensi)
         $x = range(1, $n);
 
         $regresi = PrediksiService::hitungRegresiLinear($x, $y);
@@ -57,14 +55,14 @@ class ProdiPredictionService
         $chartPredMoving  = [];
 
         for ($i = 0; $i < $n; $i++) {
-            $chartPredRegresi[] = $regresi['y_pred'][$i] ?? 0;
-            $chartPredMoving[]  = $moving['y_pred'][$i] ?? 0;
+            $chartPredRegresi[] = $regresi['y_pred'][$i] ?? null;
+            $chartPredMoving[]  = $moving['y_pred'][$i] ?? null;
         }
 
         $chartPredRegresi[] = $regresi['next_prediction'];
         $chartPredMoving[]  = $moving['next_prediction'];
 
-        // 🔥 pilih metode terbaik
+        // Pilih metode terbaik
         if ($regresi['mape'] <= $moving['mape']) {
             $metodeTerbaik      = 'regresi_linear';
             $chartPredTerbaik   = $chartPredRegresi;
@@ -83,6 +81,8 @@ class ProdiPredictionService
             'metode_terbaik'          => $metodeTerbaik,
             'regresi'                 => $regresi,
             'moving_average'          => $moving,
+            'ma_2025'                 => $moving['ma_2025'] ?? null,
+            'error_2025'              => $moving['error_2025'] ?? null,
             'chart_aktual'            => $y,
             'chart_prediksi_regresi'  => $chartPredRegresi,
             'chart_prediksi_moving'   => $chartPredMoving,

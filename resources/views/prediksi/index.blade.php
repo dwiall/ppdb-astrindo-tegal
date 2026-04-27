@@ -1,12 +1,12 @@
 @extends('layouts.app')
 
-@section('page-title', 'Prediksi PPDB')
+@section('page-title', 'Prediksi SPMB')
 @section('page-subtitle', 'Prediksi Jumlah Peserta Didik Baru Menggunakan Metode Regresi Linear dan Moving Average')
 
 @section('content')
 
 <div class="d-flex justify-content-between align-items-end mb-3">
-    <h5 class="mb-0">Ringkasan Prediksi PPDB</h5>
+    <h5 class="mb-0">Ringkasan Prediksi SPMB</h5>
     <form method="GET" action="{{ route('prediksi') }}">
         <div class="input-group input-group-sm" style="width: 260px;">
             <label class="input-group-text" for="metode">Metode</label>
